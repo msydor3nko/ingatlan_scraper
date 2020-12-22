@@ -11,7 +11,7 @@ def exctract_paginator_pages_in_catalog(tree: Selector) -> int:
     return int(total_pages_text.split(" ")[3]) if total_pages_text else 0
 
 def exctract_apart_urls_in_catalog(tree: Selector) -> list:
-    apart_urls = tree.xpath(XPATH_APART_URLS).extract()
+    apart_urls = tree.xpath(XPATH_ITEM_URLS_IN_CATALOG).extract()
     if not apart_urls:
         return []
     return [URL_DOMAIN + apart_url for apart_url in apart_urls]

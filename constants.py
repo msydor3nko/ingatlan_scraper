@@ -1,6 +1,6 @@
 # URLS
 URL_DOMAIN = "https://ingatlan.com"
-URL_APART_CATALOG = "https://ingatlan.com/szukites/kiado+lakas+budapest+havi-60-80-ezer-Ft?page=1"
+URL_APART_CATALOG = URL_DOMAIN + "/szukites/kiado+lakas+budapest+havi-60-80-ezer-Ft"
 
 # REQUEST OPTIONS
 HEADERS = {

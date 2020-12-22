@@ -14,11 +14,25 @@ def get_page(url: str) -> Selector:
      
 
 if __name__ == "__main__":
-    url = 'https://ingatlan.com/vii-ker/kiado+lakas/tegla-epitesu-lakas/31927559'
-    tree = get_page(url)
+    catalog = []
+    pageCounter = 1
+    pages = pageCounter + 1
+    while pageCounter < pages:
+        urlPage = "?page="+str(pageCounter)
+        catalogTree = get_page(URL_APART_CATALOG + urlPage)
+        pages = exctractors.exctract_paginator_pages_in_catalog(catalogTree)
+        catalog.extend(exctractors.exctract_apart_urls_in_catalog(catalogTree))
+        pageCounter += 1
+    
+    print(len(catalog))
 
-    # paginator = exctractors.exctract_paginator_pages_in_catalog(tree)
-    # aparts_urls = exctractors.exctract_apart_urls_in_catalog(tree)
-    result = exctractors.exctract_apart_page_data(tree)
 
-    print(result)
+
+    # url = 'https://ingatlan.com/vii-ker/kiado+lakas/tegla-epitesu-lakas/31927559'
+    # tree = get_page(url)
+
+    # # paginator = exctractors.exctract_paginator_pages_in_catalog(tree)
+    # # aparts_urls = exctractors.exctract_apart_urls_in_catalog(tree)
+    # result = exctractors.exctract_apart_page_data(tree)
+
+    # print(result)
