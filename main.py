@@ -1,7 +1,7 @@
 import requests
 from parsel import Selector
 
-from exctractors import Scraper
+from scraper import Scraper
 from constants import URL_APART_CATALOG
 from constants import XPATH_PAGINATOR_TOTAL_PAGES, XPATH_ITEM_URLS_IN_CATALOG
 from constants import XPATH_ITEM_TITLE
