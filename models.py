@@ -14,7 +14,7 @@ class Apartment(Base):
 
     __tablename__ = "apartments"
 
-    id = Column(Integer, primary_key=True, autoincrement=False)
+    id = Column(Integer, primary_key=True, autoincrement=False, unique=True)
     url = Column(String(200), nullable=True)
     date_creation = Column(DateTime, default=datetime.utcnow)
     data_artefacts = Column(JSONB, nullable=True)

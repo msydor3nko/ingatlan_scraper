@@ -25,6 +25,14 @@ The web scraper allowing to get real estate data.
 
 `pip install -r requirements.txt`
 
+* Create '.env' file and paste there 'DATABASE_CONNECTION' setting (e.g. bellow):
+
+`DATABASE_CONNECTION='postgresql+psycopg2://username:password@host:port/dbname'`
+
+* Chose data saving mode ("db" or "csv") using "DATA_STORAGE_SETTINGS" in "config.py"  
+
+`DATA_STORAGE_SETTINGS = "db"`
+
 ## How to run the App
 
 * Run 'main.py' file using command

@@ -14,13 +14,14 @@ from constants import XPATH_APART_ADDRESS, XPATH_APART_PRICE, XPATH_APART_ROOMS
 from constants import XPATH_APART_AREA, XPATH_APART_DESCRIPTION
 from constants import XPATH_APART_PARAMETERS_TABLE, XPATH_APART_PARAMETERS_TROWS
 from models import Apartment
-from config import POSTGRES_CONNECTION
+from config import DATABASE_CONNECTION
 
 
 class ScraperBase(object):
     def __init__(self):
-        self._engine = create_engine(POSTGRES_CONNECTION, echo=True)
+        self._engine = create_engine(DATABASE_CONNECTION, echo=True)
         self._session = sessionmaker(bind=self._engine)()
+        Apartment.metadata.create_all(self._engine)
         self._is_csv_with_header = False
 
     def save_data(self, apart_data):
@@ -103,8 +104,6 @@ class Scraper(ScraperBase):
         for url in item_urls:
             page_tree = self.get_html_response(url)
             apart_data = self.extract_apart_data(page_tree, url)
-            # self.save_to_csv(apart_data)
-            # self.save_to_db(apart_data)
             self.save_data(apart_data)
             sleep(1)
 
