@@ -4,4 +4,6 @@ from dotenv import load_dotenv
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
-POSTGRES_CONNECTION = os.environ.get("POSTGRES_CONNECTION")
+DATABASE_CONNECTION = os.environ.get("DATABASE_CONNECTION")
+
+DATA_STORAGE_SETTINGS = "db"  # or "csv"
