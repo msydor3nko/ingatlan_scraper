@@ -1,6 +1,5 @@
 import re
 
-
 # RE PATTERNS
 RE_APART_PRICE_DIGITS = re.compile("\d+")
 

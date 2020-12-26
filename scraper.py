@@ -1,24 +1,80 @@
-import requests
-from parsel import Selector
-
-from time import sleep
+import re
 import csv
 import json
-import re
+from time import sleep
+
+import requests
+from parsel import Selector
+from sqlalchemy.engine import create_engine
+from sqlalchemy.orm.session import sessionmaker
 
 from constants import URL_INGATLAN_DOMAIN, HEADERS, RE_APART_PRICE_DIGITS
 from constants import XPATH_PAGINATOR_TOTAL_PAGES, XPATH_ITEM_URLS_IN_CATALOG
 from constants import XPATH_APART_ADDRESS, XPATH_APART_PRICE, XPATH_APART_ROOMS
 from constants import XPATH_APART_AREA, XPATH_APART_DESCRIPTION
 from constants import XPATH_APART_PARAMETERS_TABLE, XPATH_APART_PARAMETERS_TROWS
+from models import Apartment
+from config import POSTGRES_CONNECTION
 
 
-class Scraper(object):
+class ScraperBase(object):
+    def __init__(self):
+        self.engine = create_engine(POSTGRES_CONNECTION, echo=True)
+        self.session = sessionmaker(bind=self.engine)()
+        self.save_to = "csv"
+        self.is_csv_with_header = False
+
+    def save_data(self, apart_data):
+        if self.save_to == "csv":
+            self._save_to_csv(apart_data)
+
+        if self.save_to == "db":
+            self._save_to_db(apart_data)
+
+    def _save_to_csv(self, apart_data: dict):
+        try:
+            with open("apart_data.csv", 'a') as csv_file:
+                writer = csv.DictWriter(csv_file,
+                                        fieldnames=apart_data.keys())
+                if not self.is_csv_with_header:
+                    writer.writeheader()
+                    self.is_csv_with_header = True
+                writer.writerow(apart_data)
+                print("=== Apart data ===", "\n", apart_data)
+        except IOError:
+            print("IOError: saving data into CSV")
+
+    def _save_to_db(self, apart_data):
+        try:
+            apart = Apartment(
+                id=apart_data.get('apart_id'),
+                url=apart_data.get('url'),
+                data_artefacts=apart_data.get('data_artefacts'),
+                address=apart_data.get('address'),
+                price=apart_data.get('price'),
+                rooms=apart_data.get('rooms'),
+                area=apart_data.get('area'),
+                parameters=apart_data.get('parameters'),
+                description=apart_data.get('description'),
+            )
+            self.session.add(apart)
+            self.session.commit()
+            print(f'Saved: {apart_data}')
+
+        except Exception as exc:
+            print(f"ScraperBase exception: {exc}")
+
+        finally:
+            self.session.close()
+            print('ScraperBase session closed.')
+
+
+class Scraper(ScraperBase):
 
     def __init__(self, url: str):
+        super().__init__()
         self.url = url
-        self.paginator = 0
-        self.is_csv_with_header = False
+        self.page_count = 0
 
     def run(self):
         if not (first_catalog_page := self.get_html_response(self.url)):
@@ -26,13 +82,13 @@ class Scraper(object):
 
         self.scrape_aparts_on_catalog_page(first_catalog_page)
 
-        self.paginator = self.extract_paginator_on_catalog_page(first_catalog_page) or 1
-        if self.paginator > 1:
+        self.page_count = self.extract_paginator_on_catalog_page(first_catalog_page) or 1
+        if self.page_count > 1:
             self.generate_catalog_page()
         return
 
     def generate_catalog_page(self):
-        catalog_urls = (f"{self.url}?page={n}" for n in range(2, self.paginator+1))
+        catalog_urls = (f"{self.url}?page={n}" for n in range(2, self.page_count + 1))
         for url in catalog_urls:
             print("\nCatalog page generated:", url)
             catalog_page = self.get_html_response(url)
@@ -47,21 +103,10 @@ class Scraper(object):
         for url in item_urls:
             page_tree = self.get_html_response(url)
             apart_data = self.extract_apart_data(page_tree, url)
-            print("Apart data:", "\n", apart_data)
-            self.save_to_csv(apart_data)
-            # self.save_to_db(apart_data)   # ???
+            # self.save_to_csv(apart_data)
+            # self.save_to_db(apart_data)
+            self.save_data(apart_data)
             sleep(1)
-
-    def save_to_csv(self, apart_data: dict):
-        try:
-            with open("apart_data.csv", 'a') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=apart_data.keys())
-                if not self.is_csv_with_header:
-                    writer.writeheader()
-                    self.is_csv_with_header = True
-                writer.writerow(apart_data)
-        except IOError:
-            print("IOError: saving data into CSV")
 
     def extract_apart_data(self, tree: Selector, apart_url: str) -> dict:
         data_artefacts = {}
@@ -90,19 +135,21 @@ class Scraper(object):
         data_artefacts = \
             json.dumps(data_artefacts, ensure_ascii=False) if data_artefacts else None
 
+        apart_id = self.extract_apart_id_from_item_url(apart_url)
         address = self.extract_apart_address(tree)
         description = self.extract_apart_description(tree)
         parameters = self.extract_apart_parameters(tree)
 
         apart_data = dict(
+            apart_id=apart_id,
             url=apart_url,
             data_artefacts=data_artefacts,
             address=address,
             price=price,
             rooms=rooms,
             area=area,
-            description=description,
             parameters=parameters,
+            description=description,
         )
 
         return apart_data
@@ -118,6 +165,10 @@ class Scraper(object):
         if not apart_urls:
             return []
         return [URL_INGATLAN_DOMAIN + apart_url for apart_url in apart_urls]
+
+    @staticmethod
+    def extract_apart_id_from_item_url(url: str) -> int:
+        return int(url.split("/")[-1])
 
     @staticmethod
     def extract_apart_address(tree: Selector) -> str:

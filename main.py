@@ -1,17 +1,12 @@
-import requests
-from parsel import Selector
-
 from scraper import Scraper
 
 
 if __name__ == "__main__":
-    URL = "https://ingatlan.com/szukites/kiado+lakas+budapest+havi-60-80-ezer-Ft"
-    
-    url = input("Paste the search url: ") or URL
+    default_url = "https://ingatlan.com/szukites/kiado+lakas+budapest+havi-60-80-ezer-Ft"
+    url = input("Paste the search url: ") or default_url
 
-    scraper = Scraper(URL)
+    # arg: save_to="db" -> need to resolve:
+    # "TypeError: __init__() got an unexpected keyword argument 'save_to'"
+    scraper = Scraper(url=url)
     scraper.run()
-    
-    # tree = scraper.get_html_response(URL)
-    # res = tree.xpath(XPATH_ITEM_URLS_IN_CATALOG).extract()
-    # print(res)
+
