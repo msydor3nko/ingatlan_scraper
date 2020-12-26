@@ -19,10 +19,9 @@ from config import POSTGRES_CONNECTION
 
 class ScraperBase(object):
     def __init__(self):
-        self.engine = create_engine(POSTGRES_CONNECTION, echo=True)
-        self.session = sessionmaker(bind=self.engine)()
-        self.save_to = "csv"
-        self.is_csv_with_header = False
+        self._engine = create_engine(POSTGRES_CONNECTION, echo=True)
+        self._session = sessionmaker(bind=self._engine)()
+        self._is_csv_with_header = False
 
     def save_data(self, apart_data):
         if self.save_to == "csv":
@@ -36,9 +35,9 @@ class ScraperBase(object):
             with open("apart_data.csv", 'a') as csv_file:
                 writer = csv.DictWriter(csv_file,
                                         fieldnames=apart_data.keys())
-                if not self.is_csv_with_header:
+                if not self._is_csv_with_header:
                     writer.writeheader()
-                    self.is_csv_with_header = True
+                    self._is_csv_with_header = True
                 writer.writerow(apart_data)
                 print("=== Apart data ===", "\n", apart_data)
         except IOError:
@@ -57,24 +56,25 @@ class ScraperBase(object):
                 parameters=apart_data.get('parameters'),
                 description=apart_data.get('description'),
             )
-            self.session.add(apart)
-            self.session.commit()
+            self._session.add(apart)
+            self._session.commit()
             print(f'Saved: {apart_data}')
 
         except Exception as exc:
             print(f"ScraperBase exception: {exc}")
 
         finally:
-            self.session.close()
+            self._session.close()
             print('ScraperBase session closed.')
 
 
 class Scraper(ScraperBase):
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, save_to: str):
         super().__init__()
+        self._page_count = 0
         self.url = url
-        self.page_count = 0
+        self.save_to = save_to
 
     def run(self):
         if not (first_catalog_page := self.get_html_response(self.url)):
@@ -82,13 +82,13 @@ class Scraper(ScraperBase):
 
         self.scrape_aparts_on_catalog_page(first_catalog_page)
 
-        self.page_count = self.extract_paginator_on_catalog_page(first_catalog_page) or 1
-        if self.page_count > 1:
+        self._page_count = self.extract_paginator_on_catalog_page(first_catalog_page) or 1
+        if self._page_count > 1:
             self.generate_catalog_page()
         return
 
     def generate_catalog_page(self):
-        catalog_urls = (f"{self.url}?page={n}" for n in range(2, self.page_count + 1))
+        catalog_urls = (f"{self.url}?page={n}" for n in range(2, self._page_count + 1))
         for url in catalog_urls:
             print("\nCatalog page generated:", url)
             catalog_page = self.get_html_response(url)
