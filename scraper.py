@@ -15,7 +15,7 @@ from constants import XPATH_APART_AREA, XPATH_APART_DESCRIPTION
 from constants import XPATH_APART_PARAMETERS_TABLE, XPATH_APART_PARAMETERS_TROWS
 from models import Apartment
 from config import DATABASE_CONNECTION
-
+import translate
 
 class ScraperBase(object):
     def __init__(self):
@@ -206,18 +206,19 @@ class Scraper(ScraperBase):
     @staticmethod
     def extract_apart_description(tree: Selector) -> str:
         description = tree.xpath(XPATH_APART_DESCRIPTION).extract()
-        return " ".join(s.strip() for s in description if s) if description else None
+        
+        return translate.translate(" ".join(s.strip() for s in description if s)).replace("\r\n","") if description else None
 
     @staticmethod
-    def extract_apart_parameters(tree: Selector) -> str:
+    def extract_apart_parameters(tree: Selector) -> dict:
         params = tree.xpath(XPATH_APART_PARAMETERS_TABLE)
         try:
             params = dict(tr.xpath(XPATH_APART_PARAMETERS_TROWS).extract() for tr in params)
-            params = {k.lower(): v for k, v in params.items()}
-            for key, val in params.items():
-                if val == "nincs megadva":
-                    params[key] = "NA"
-            return json.dumps(params, ensure_ascii=False)
+            params = {translate.translate(k.lower()).replace("\r\n",""): translate.translate(v).replace("\r\n","") for k, v in params.items()}
+            # for key, val in params.items():
+                # if val == "nincs megadva":
+                #     params[key] = "NA"
+            return params
         except Exception as exc:
             print(exc)
             return params
